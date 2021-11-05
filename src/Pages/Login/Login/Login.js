@@ -7,7 +7,7 @@ import login from '../../../images/login.png';
 const Login = () => {
 
     const [loginData, setLoginData] = useState({})
-    const { loginUser, user, isLoading, authError } = useAuth();
+    const { loginUser, user, isLoading, authError, signInWithGoogle } = useAuth();
 
     const location = useLocation();
     const history = useHistory();
@@ -23,6 +23,10 @@ const Login = () => {
     const handleLoginSubmit = e => {
         e.preventDefault()
         loginUser(loginData.email, loginData.password, location, history);
+    }
+
+    const handleGoogleSignIn = () => {
+        signInWithGoogle(location, history)
     }
 
     return (
@@ -65,6 +69,8 @@ const Login = () => {
                     {
                         authError && <Alert severity="error">{authError}</Alert>
                     }
+                    <p>--------------------------------</p>
+                    <Button variant="contained" onClick={handleGoogleSignIn}>Google Sign In</Button>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <img src={login} style={{ width: '100%' }} alt="" />
