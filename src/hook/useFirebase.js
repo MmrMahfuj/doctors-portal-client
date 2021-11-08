@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import initializeAuthentication from "../Pages/Login/Firebase/firebase.init";
-import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getIdToken, updateProfile } from "firebase/auth";
 
 
 
@@ -18,6 +18,8 @@ const useFirebase = () => {
     const [user, setUser] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [authError, setAuthError] = useState('');
+    const [admin, setAdmin] = useState(false);
+    const [token, setToken] = useState('');
 
     const auth = getAuth();
 
@@ -32,6 +34,9 @@ const useFirebase = () => {
                 setAuthError('');
                 const newUser = { email, displayName: name };
                 setUser(newUser)
+                //save user to the database
+                saveUser(email, name, 'POST');
+                //send name to firebase after creation
                 updateProfile(auth.currentUser, {
                     displayName: name
                 }).then(() => {
@@ -71,6 +76,7 @@ const useFirebase = () => {
                 const user = result.user;
                 const destination = location?.state?.from || '/home';
                 history.replace(destination);
+                saveUser(user.email, user.displayName, 'PUT')
                 setAuthError('');
             }).catch((error) => {
                 setAuthError(error.message);
@@ -83,6 +89,10 @@ const useFirebase = () => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 setUser(user)
+                getIdToken(user)
+                    .then(idToken => {
+                        setToken(idToken);
+                    })
             }
             else {
                 setUser({})
@@ -90,8 +100,14 @@ const useFirebase = () => {
             setIsLoading(false);
         })
         return () => unsubscribe
-    }, [])
+    }, [auth])
 
+
+    useEffect(() => {
+        fetch(`https://cryptic-tor-49954.herokuapp.com/users/${user.email}`)
+            .then(res => res.json())
+            .then(data => setAdmin(data.admin))
+    }, [user.email])
 
     const logOut = () => {
         signOut(auth).then(() => {
@@ -105,9 +121,24 @@ const useFirebase = () => {
             .finally(() => setIsLoading(false));
     }
 
+    const saveUser = (email, displayName, method) => {
+        const user = { email, displayName };
+        fetch('https://cryptic-tor-49954.herokuapp.com/users', {
+            method: method,
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+            .then()
+    }
+
+
     return {
         authError,
         user,
+        admin,
+        token,
         setUser,
         registerUser,
         loginUser,
